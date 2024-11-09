@@ -11,7 +11,10 @@ repositories {
 }
 
 dependencies {
+    implementation(libs.coroutines)
+
     testImplementation(libs.junit.jupiter)
+    testImplementation(libs.kotest)
 }
 
 // Apply a specific Java toolchain to ease working on different environments.
