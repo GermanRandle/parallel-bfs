@@ -7,7 +7,7 @@ const val CUBE_SIDE = 500
 const val LAUNCHES_COUNT = 5
 const val PROCESSES_COUNT = 4
 
-val cubicGraph = buildCubicGraph()
+val testGraph = CubicGraph(CUBE_SIDE)
 
 fun main() = runBlocking {
     val seqToParTimes = List(LAUNCHES_COUNT) {
@@ -17,13 +17,13 @@ fun main() = runBlocking {
         val parResult: List<Int>
 
         val sequentialTime = measureTimeMillis {
-            seqResult = bfsSequential()
+            seqResult = bfsSequential(testGraph)
         }.also {
             println("SEQUENTIAL TIME: $it ms")
         }
 
         val parallelTime = measureTimeMillis {
-            parResult = bfsParallel()
+            parResult = bfsParallel(testGraph)
         }.also {
             println("PARALLEL TIME: $it ms")
         }

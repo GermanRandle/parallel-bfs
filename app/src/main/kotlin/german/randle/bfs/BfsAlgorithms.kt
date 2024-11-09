@@ -1,9 +1,9 @@
 package german.randle.bfs
 
-fun bfsSequential(): List<Int> {
-    return emptyList()
+fun bfsSequential(gr: Graph): List<Int> {
+    return emptyList() // TODO
 }
 
-fun bfsParallel(): List<Int> {
-    return emptyList()
+fun bfsParallel(gr: Graph): List<Int> {
+    return emptyList() // TODO
 }
