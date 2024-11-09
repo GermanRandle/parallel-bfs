@@ -18,7 +18,13 @@ class CubicGraph(val side: Int) : Graph {
     }
 
     fun checkBfsResult(bfsResult: List<Int>): Boolean {
-        return false // TODO
+        check(bfsResult.size == side * side * side) { "wrong number of nodes in the bfs result..." }
+        for (u in 0..<bfsResult.size) {
+            if (bfsResult[u] != u.toCoords().let { it.first + it.second + it.third }) {
+                return false
+            }
+        }
+        return true
     }
 
     private fun Int.toCoords() = Triple(this / side / side, this / side % side, this % side)

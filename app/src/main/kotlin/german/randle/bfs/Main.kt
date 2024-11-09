@@ -28,10 +28,10 @@ fun main() = runBlocking {
             println("PARALLEL TIME: $it ms")
         }
 
-        check(isBfsCorrect(seqResult)) {
+        check(testGraph.checkBfsResult(seqResult)) {
             "SEQUENTIAL BFS FAILED"
         }
-        check(isBfsCorrect(parResult)) {
+        check(testGraph.checkBfsResult(parResult)) {
             "PARALLEL BFS FAILED"
         }
 
