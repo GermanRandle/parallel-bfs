@@ -36,8 +36,18 @@ class CubicGraph(val side: Int) : Graph {
     private fun nodeOf(x: Int, y: Int, z: Int) = x * side * side + y * side + z
 }
 
-class AdjListGraph(val adjList: List<List<Int>>) : Graph {
-    override val n = adjList.size
+class AdjListGraph(override val n: Int, edges: Set<Pair<Int, Int>>) : Graph {
+    private val adjList: List<List<Int>>
+
+    init {
+        val adjList = List(n) { mutableListOf<Int>() }
+        for ((u, v) in edges) {
+            check(u != v && (v to u) !in edges) { "No self-loops and repeated edges allowed" }
+            adjList[u].add(v)
+            adjList[v].add(u)
+        }
+        this.adjList = adjList
+    }
 
     override fun getAdjacentNodes(u: Int): List<Int> {
         return adjList[u]
