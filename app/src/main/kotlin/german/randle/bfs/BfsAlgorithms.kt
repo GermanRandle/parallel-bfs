@@ -45,6 +45,7 @@ suspend fun bfsParallel(gr: Graph, blockSize: Int): List<Int> {
     ) {
         if (r - l <= blockSize) {
             scanTree[nodeId] = (l..<r).sumOf { indexToValue(it) }
+            return
         }
 
         val m = (l + r) / 2
@@ -68,9 +69,10 @@ suspend fun bfsParallel(gr: Graph, blockSize: Int): List<Int> {
         if (r - l <= blockSize) {
             var localAcc = 0
             (l..<r).forEach {
-                scan[it] = acc + localAcc
                 localAcc += indexToValue(it)
+                scan[it + 1] = acc + localAcc
             }
+            return
         }
 
         val m = (l + r) / 2
@@ -82,11 +84,17 @@ suspend fun bfsParallel(gr: Graph, blockSize: Int): List<Int> {
     
     val adjNodesFunction = { u: Int -> gr.getAdjacentNodesCount(frontier[u]) }
 
+    var layer = 0
     while (frontier.isNotEmpty()) {
+        layer++
         val scanTree = IntArray(frontier.size * 4)
         val scan = IntArray(frontier.size + 1)
         scope.launch { up(scanTree, 0, 0, frontier.size, adjNodesFunction) }.join()
         scope.launch { down(scan, scanTree, 0, 0, frontier.size, 0, adjNodesFunction) }.join()
+        val neighbors = scan.last()
+        if (neighbors == 0) {
+            break
+        }
         val next = IntArray(scan.last()) { -1 }
 
         val chunksAmount = (frontier.size + blockSize - 1) / blockSize
@@ -95,10 +103,11 @@ suspend fun bfsParallel(gr: Graph, blockSize: Int): List<Int> {
             scope.launch {
                 val chunkBegin = chunk * chunkSize
                 val chunkEnd = minOf(frontier.size, chunkBegin + chunkSize)
-                (chunkBegin..<chunkEnd).forEach { u ->
+                (chunkBegin..<chunkEnd).forEach { fi ->
+                    val u = frontier[fi]
                     for ((i, v) in gr.getAdjacentNodes(u).withIndex()) {
                         if (used.compareAndSet(v, 0, 1)) {
-                            next[scan[v] + i] = v
+                            next[scan[fi] + i] = v
                         }
                     }
                 }
@@ -114,15 +123,16 @@ suspend fun bfsParallel(gr: Graph, blockSize: Int): List<Int> {
 
         val nextFrontier = IntArray(nextScan.last())
         val copyChunksAmount = (next.size + blockSize - 1) / blockSize
-        val copyChunkSize = (next.size + chunksAmount - 1) / chunksAmount
+        val copyChunkSize = (next.size + copyChunksAmount - 1) / copyChunksAmount
         
         val copyJobs = (0..<copyChunksAmount).map { chunk ->
             scope.launch {
-                val chunkBegin = chunk * chunkSize
+                val chunkBegin = chunk * copyChunkSize
                 val chunkEnd = minOf(next.size, chunkBegin + copyChunkSize)
-                (chunkBegin..<chunkEnd).forEach { u ->
-                    if (nextScan[u] != nextScan[u + 1]) {
-                        nextFrontier[nextScan[u]] = u
+                (chunkBegin..<chunkEnd).forEach { ni ->
+                    if (nextScan[ni] != nextScan[ni + 1]) {
+                        nextFrontier[nextScan[ni]] = next[ni]
+                        result[next[ni]] = layer
                     }
                 }
             }
