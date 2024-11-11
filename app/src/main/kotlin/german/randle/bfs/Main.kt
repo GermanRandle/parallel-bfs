@@ -10,6 +10,12 @@ const val INF = 1_000_000_000
 
 val testGraph = CubicGraph(CUBE_SIDE)
 
+/**
+ * If the size of array is less than or equal to this number, then we "switch to sequential mode".
+ * Should be set up manually, also it depends on [PROCESSES_COUNT].
+ */
+private const val BLOCK_SIZE = 1000
+
 fun main() = runBlocking {
     val seqToParTimes = List(LAUNCHES_COUNT) {
         println("LAUNCH #${it + 1}")
@@ -24,7 +30,7 @@ fun main() = runBlocking {
         }
 
         val parallelTime = measureTimeMillis {
-            parResult = bfsParallel(testGraph)
+            parResult = bfsParallel(testGraph, BLOCK_SIZE)
         }.also {
             println("PARALLEL TIME: $it ms")
         }

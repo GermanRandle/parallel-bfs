@@ -2,6 +2,7 @@ package german.randle.bfs
 
 import io.kotest.matchers.booleans.shouldBeTrue
 import io.kotest.matchers.shouldBe
+import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
@@ -28,7 +29,7 @@ class BfsTest {
     @ValueSource(ints = [1, 2, 3, 4, 15, 16, 50])
     fun `cubic + par`(n: Int) {
         val gr = CubicGraph(n)
-        val bfsResult = bfsParallel(gr)
+        val bfsResult = runBlocking { bfsParallel(gr, 1) }
         gr.checkBfsResult(bfsResult).shouldBeTrue()
     }
 
@@ -36,7 +37,7 @@ class BfsTest {
     @MethodSource("adjListGraphTestcases")
     fun `adj list + par`(name: String, n: Int, edges: Set<Pair<Int, Int>>, expected: List<Int>) {
         val gr = AdjListGraph(n, edges)
-        val bfsResult = bfsParallel(gr)
+        val bfsResult = runBlocking { bfsParallel(gr, 1) }
         bfsResult shouldBe expected
     }
 

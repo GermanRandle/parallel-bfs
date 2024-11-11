@@ -3,11 +3,23 @@ package german.randle.bfs
 sealed interface Graph {
     val n: Int
 
+    fun getAdjacentNodesCount(u: Int): Int
+
     fun getAdjacentNodes(u: Int): List<Int>
 }
 
 class CubicGraph(val side: Int) : Graph {
     override val n = side * side * side
+
+    override fun getAdjacentNodesCount(u: Int): Int {
+        val (x, y, z) = u.toCoords()
+        return if (x > 0) 1 else 0 +
+            if (x < side - 1) 1 else 0 +
+            if (y > 0) 1 else 0 +
+            if (y < side - 1) 1 else 0 +
+            if (z > 0) 1 else 0 +
+            if (z < side - 1) 1 else 0
+    }
 
     override fun getAdjacentNodes(u: Int): List<Int> {
         val (x, y, z) = u.toCoords()
@@ -47,6 +59,10 @@ class AdjListGraph(override val n: Int, edges: Set<Pair<Int, Int>>) : Graph {
             adjList[v].add(u)
         }
         this.adjList = adjList
+    }
+
+    override fun getAdjacentNodesCount(u: Int): Int {
+        return adjList[u].size
     }
 
     override fun getAdjacentNodes(u: Int): List<Int> {
