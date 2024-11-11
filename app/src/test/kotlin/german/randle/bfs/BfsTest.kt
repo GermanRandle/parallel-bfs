@@ -24,6 +24,22 @@ class BfsTest {
         bfsResult shouldBe expected
     }
 
+    @ParameterizedTest(name = "n = {0}")
+    @ValueSource(ints = [1, 2, 3, 4, 15, 16, 50])
+    fun `cubic + par`(n: Int) {
+        val gr = CubicGraph(n)
+        val bfsResult = bfsParallel(gr)
+        gr.checkBfsResult(bfsResult).shouldBeTrue()
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("adjListGraphTestcases")
+    fun `adj list + par`(name: String, n: Int, edges: Set<Pair<Int, Int>>, expected: List<Int>) {
+        val gr = AdjListGraph(n, edges)
+        val bfsResult = bfsParallel(gr)
+        bfsResult shouldBe expected
+    }
+
     companion object {
         @JvmStatic
         fun adjListGraphTestcases() = listOf(
