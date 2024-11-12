@@ -30,16 +30,29 @@ fun bfsSequential(gr: Graph): List<Int> {
 val scope = CoroutineScope(Dispatchers.Default.limitedParallelism(PROCESSES_COUNT))
 
 const val MAX_FRONTIER = CUBE_SIDE * CUBE_SIDE * 2
+const val MAX_DEGREE = 6
 val used = AtomicIntegerArray(CUBE_SIDE * CUBE_SIDE * CUBE_SIDE)
-var frontier = IntArray(MAX_FRONTIER) { -1 }
-val next = IntArray(MAX_FRONTIER * 6) { -1 }
-val nextScanTree = IntArray(MAX_FRONTIER * 24)
-val nextScan = IntArray(MAX_FRONTIER * 6)
+val frontier = IntArray(MAX_FRONTIER) { -1 }
+val next = IntArray(MAX_FRONTIER * MAX_DEGREE) { -1 }
+val nextScanTree = IntArray(MAX_FRONTIER * MAX_DEGREE * 4)
+val nextScan = IntArray(MAX_FRONTIER * MAX_DEGREE)
 val scanTree = IntArray(MAX_FRONTIER * 4)
 val scan = IntArray(MAX_FRONTIER)
 
+fun cleanupForBfsParallel() {
+    for (i in 0..<used.length()) {
+        used.set(i, 0)
+    }
+    for (i in 0..<frontier.size) {
+        frontier[i] = -1
+    }
+    for (i in 0..<next.size) {
+        next[i] = -1
+    }
+}
+
 /**
- * WARNING: clear [used] before running
+ * WARNING: call [cleanupForBfsParallel] before
  */
 suspend fun bfsParallel(gr: Graph, blockSize: Int): List<Int> {
     val result = MutableList(gr.n) { INF }
@@ -107,11 +120,11 @@ suspend fun bfsParallel(gr: Graph, blockSize: Int): List<Int> {
             scope.launch {
                 val chunkBegin = chunk * chunkSize
                 val chunkEnd = minOf(frontierSize, chunkBegin + chunkSize)
-                (chunkBegin..<chunkEnd).forEach { fi ->
-                    val u = frontier[fi]
+                (chunkBegin..<chunkEnd).forEach { frontierIndex ->
+                    val u = frontier[frontierIndex]
                     for ((i, v) in gr.getAdjacentNodes(u).withIndex()) {
                         if (used.compareAndSet(v, 0, 1)) {
-                            next[scan[fi] + i] = v
+                            next[scan[frontierIndex] + i] = v
                         }
                     }
                 }
@@ -123,9 +136,6 @@ suspend fun bfsParallel(gr: Graph, blockSize: Int): List<Int> {
         up(nextScanTree, 0, 0, nextSize, isNodePresentFunction)
         val nextFrontierSize = down(nextScan, nextScanTree, 0, 0, nextSize, 0, isNodePresentFunction)
         if (nextFrontierSize == 0) {
-            for (i in 0..<frontierSize) {
-                frontier[i] = -1
-            }
             break
         }
 

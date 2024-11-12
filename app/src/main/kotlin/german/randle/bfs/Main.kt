@@ -29,10 +29,7 @@ fun main() = runBlocking {
             println("SEQUENTIAL TIME: $it ms")
         }
 
-        for (i in 0..<testGraph.n) {
-            used.set(i, 0)
-        }
-
+        cleanupForBfsParallel()
         val parallelTime = measureTimeMillis {
             parResult = bfsParallel(testGraph, BLOCK_SIZE)
         }.also {
