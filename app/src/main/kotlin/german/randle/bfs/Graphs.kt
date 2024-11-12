@@ -13,12 +13,12 @@ class CubicGraph(val side: Int) : Graph {
 
     override fun getAdjacentNodesCount(u: Int): Int {
         val (x, y, z) = u.toCoords()
-        return if (x > 0) 1 else 0 +
-            if (x < side - 1) 1 else 0 +
-            if (y > 0) 1 else 0 +
-            if (y < side - 1) 1 else 0 +
-            if (z > 0) 1 else 0 +
-            if (z < side - 1) 1 else 0
+        return (if (x > 0) 1 else 0) +
+            (if (x < side - 1) 1 else 0) +
+            (if (y > 0) 1 else 0) +
+            (if (y < side - 1) 1 else 0) +
+            (if (z > 0) 1 else 0) +
+            (if (z < side - 1) 1 else 0)
     }
 
     override fun getAdjacentNodes(u: Int): List<Int> {

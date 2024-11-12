@@ -5,7 +5,7 @@ import kotlin.system.measureTimeMillis
 
 const val CUBE_SIDE = 100 // TODO
 const val LAUNCHES_COUNT = 5
-const val PROCESSES_COUNT = 4 // TODO
+const val PROCESSES_COUNT = 1 // TODO
 const val INF = 1_000_000_000
 
 val testGraph = CubicGraph(CUBE_SIDE)

@@ -25,8 +25,8 @@ class BfsTest {
         bfsResult shouldBe expected
     }
 
-    @ParameterizedTest(name = "n = {0}")
-    @ValueSource(ints = [1, 2, 3, 4, 15, 16, 50])
+    @ParameterizedTest(name = "side = {0}")
+    @ValueSource(ints = [1, 2, 3, 4, 9, 15, 16])
     fun `cubic + par`(n: Int) {
         val gr = CubicGraph(n)
         val bfsResult = runBlocking { bfsParallel(gr, 1) }

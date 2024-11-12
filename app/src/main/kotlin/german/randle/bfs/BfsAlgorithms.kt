@@ -89,8 +89,8 @@ suspend fun bfsParallel(gr: Graph, blockSize: Int): List<Int> {
         layer++
         val scanTree = IntArray(frontier.size * 4)
         val scan = IntArray(frontier.size + 1)
-        scope.launch { up(scanTree, 0, 0, frontier.size, adjNodesFunction) }.join()
-        scope.launch { down(scan, scanTree, 0, 0, frontier.size, 0, adjNodesFunction) }.join()
+        up(scanTree, 0, 0, frontier.size, adjNodesFunction)
+        down(scan, scanTree, 0, 0, frontier.size, 0, adjNodesFunction)
         val neighbors = scan.last()
         if (neighbors == 0) {
             break
