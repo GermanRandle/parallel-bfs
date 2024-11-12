@@ -32,7 +32,6 @@ val scope = CoroutineScope(Dispatchers.Default.limitedParallelism(PROCESSES_COUN
 const val MAX_FRONTIER = CUBE_SIDE * CUBE_SIDE * 2
 val used = AtomicIntegerArray(CUBE_SIDE * CUBE_SIDE * CUBE_SIDE)
 var frontier = IntArray(MAX_FRONTIER) { -1 }
-var frontierSize = 1
 val next = IntArray(MAX_FRONTIER * 6) { -1 }
 val nextScanTree = IntArray(MAX_FRONTIER * 24)
 val nextScan = IntArray(MAX_FRONTIER * 6)
@@ -45,6 +44,7 @@ val scan = IntArray(MAX_FRONTIER)
 suspend fun bfsParallel(gr: Graph, blockSize: Int): List<Int> {
     val result = MutableList(gr.n) { INF }
     frontier[0] = 0
+    var frontierSize = 1
     used.set(0, 1)
     result[0] = 0
 
@@ -123,6 +123,9 @@ suspend fun bfsParallel(gr: Graph, blockSize: Int): List<Int> {
         up(nextScanTree, 0, 0, nextSize, isNodePresentFunction)
         val nextFrontierSize = down(nextScan, nextScanTree, 0, 0, nextSize, 0, isNodePresentFunction)
         if (nextFrontierSize == 0) {
+            for (i in 0..<frontierSize) {
+                frontier[i] = -1
+            }
             break
         }
 
