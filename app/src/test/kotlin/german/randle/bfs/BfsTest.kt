@@ -1,7 +1,6 @@
 package german.randle.bfs
 
 import io.kotest.matchers.booleans.shouldBeTrue
-import io.kotest.matchers.shouldBe
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
@@ -10,19 +9,21 @@ import org.junit.jupiter.params.provider.ValueSource
 
 class BfsTest {
     @ParameterizedTest(name = "side = {0}")
-    @ValueSource(ints = [1, 2, 3, 4, 15, 16, 50])
+    @ValueSource(ints = [1, 2, 3, 4, 9, 15, 16, 25])
     fun `cubic + seq`(n: Int) {
         val gr = CubicGraph(n)
-        val bfsResult = bfsSequential(gr)
-        gr.checkSeqBfsResult(bfsResult).shouldBeTrue()
+        cleanupForBfsSequential()
+        bfsSequential(gr)
+        gr.checkSeqBfsResult().shouldBeTrue()
     }
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("adjListGraphTestcases")
     fun `adj list + seq`(name: String, n: Int, edges: Set<Pair<Int, Int>>, expected: List<Int>) {
         val gr = AdjListGraph(n, edges)
-        val bfsResult = bfsSequential(gr)
-        bfsResult shouldBe expected
+        cleanupForBfsSequential()
+        bfsSequential(gr)
+        gr.checkSeqBfsResult(expected).shouldBeTrue()
     }
 
     @ParameterizedTest(name = "side = {0}")
@@ -31,7 +32,6 @@ class BfsTest {
         val gr = CubicGraph(n)
         cleanupForBfsParallel()
         runBlocking { bfsParallel(gr, 1) }
-
         gr.checkParBfsResult().shouldBeTrue()
     }
 

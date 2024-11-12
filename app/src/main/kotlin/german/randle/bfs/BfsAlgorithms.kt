@@ -7,30 +7,13 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import java.util.concurrent.atomic.AtomicIntegerArray
 
-fun bfsSequential(gr: Graph): List<Int> {
-    val result = MutableList(gr.n) { INF }
-    val q = ArrayDeque<Int>()
-    result[0] = 0
-    q.add(0)
-
-    while (q.isNotEmpty()) {
-        val u = q.removeFirst()
-        for (v in gr.getAdjacentNodes(u)) {
-            if (result[v] == INF) {
-                result[v] = result[u] + 1
-                q.add(v)
-            }
-        }
-    }
-
-    return result
-}
-
 @OptIn(ExperimentalCoroutinesApi::class)
 val scope = CoroutineScope(Dispatchers.Default.limitedParallelism(PROCESSES_COUNT))
 
+// Optimizing memory
 const val MAX_FRONTIER = CUBE_SIDE * CUBE_SIDE
 const val MAX_DEGREE = 6
+val seqResult = MutableList(CUBE_SIDE * CUBE_SIDE * CUBE_SIDE) { INF }
 val parResult = AtomicIntegerArray(CUBE_SIDE * CUBE_SIDE * CUBE_SIDE)
 val frontier = IntArray(MAX_FRONTIER) { -1 }
 val next = IntArray(MAX_FRONTIER * MAX_DEGREE) { -1 }
@@ -38,6 +21,31 @@ val nextScanTree = IntArray(MAX_FRONTIER * MAX_DEGREE * 4)
 val nextScan = IntArray(MAX_FRONTIER * MAX_DEGREE)
 val scanTree = IntArray(MAX_FRONTIER * 4)
 val scan = IntArray(MAX_FRONTIER)
+
+fun cleanupForBfsSequential() {
+    for (i in 0..<seqResult.size) {
+        seqResult[i] = INF
+    }
+}
+
+/**
+ * WARNING: call [cleanupForBfsSequential] before
+ */
+fun bfsSequential(gr: Graph) {
+    val q = ArrayDeque<Int>()
+    seqResult[0] = 0
+    q.add(0)
+
+    while (q.isNotEmpty()) {
+        val u = q.removeFirst()
+        for (v in gr.getAdjacentNodes(u)) {
+            if (seqResult[v] == INF) {
+                seqResult[v] = seqResult[u] + 1
+                q.add(v)
+            }
+        }
+    }
+}
 
 fun cleanupForBfsParallel() {
     for (i in 0..<parResult.length()) {
@@ -155,6 +163,7 @@ suspend fun bfsParallel(gr: Graph, blockSize: Int) {
         }
         copyJobs.forEach { it.join() }
 
+        // We don't expect many elements here, so I see no reason to parallelize it.
         for (i in nextFrontierSize..<frontierSize) {
             frontier[i] = -1
         }

@@ -3,7 +3,7 @@ package german.randle.bfs
 import kotlinx.coroutines.runBlocking
 import kotlin.system.measureTimeMillis
 
-const val CUBE_SIDE = 200 // TODO
+const val CUBE_SIDE = 500
 const val LAUNCHES_COUNT = 5
 const val PROCESSES_COUNT = 4
 const val INF = 1_000_000_000
@@ -14,16 +14,15 @@ val testGraph = CubicGraph(CUBE_SIDE)
  * If the size of array is less than or equal to this number, then we "switch to sequential mode".
  * Should be set up manually, also it depends on [PROCESSES_COUNT].
  */
-private const val BLOCK_SIZE = 10000 // TODO
+private const val BLOCK_SIZE = 10000
 
 fun main() = runBlocking {
     val seqToParTimes = List(LAUNCHES_COUNT) {
         println("LAUNCH #${it + 1}")
 
-        val seqResult: List<Int>
-
+        cleanupForBfsSequential()
         val sequentialTime = measureTimeMillis {
-            seqResult = bfsSequential(testGraph)
+            bfsSequential(testGraph)
         }.also {
             println("SEQUENTIAL TIME: $it ms")
         }
@@ -35,7 +34,7 @@ fun main() = runBlocking {
             println("PARALLEL TIME: $it ms")
         }
 
-        check(testGraph.checkSeqBfsResult(seqResult)) {
+        check(testGraph.checkSeqBfsResult()) {
             "SEQUENTIAL BFS FAILED"
         }
         check(testGraph.checkParBfsResult()) {
