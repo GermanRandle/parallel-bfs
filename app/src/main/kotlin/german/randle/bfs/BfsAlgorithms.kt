@@ -118,8 +118,8 @@ suspend fun bfsParallel(gr: Graph, blockSize: Int): List<Int> {
         val nextScanTree = IntArray(next.size * 4)
         val nextScan = IntArray(next.size + 1)
         val isNodePresentFunction = { i: Int -> if (next[i] != -1) 1 else 0 }
-        scope.launch { up(nextScanTree, 0, 0, next.size, isNodePresentFunction) }.join()
-        scope.launch { down(nextScan, nextScanTree, 0, 0, next.size, 0, isNodePresentFunction) }.join()
+        up(nextScanTree, 0, 0, next.size, isNodePresentFunction)
+        down(nextScan, nextScanTree, 0, 0, next.size, 0, isNodePresentFunction)
 
         val nextFrontier = IntArray(nextScan.last())
         val copyChunksAmount = (next.size + blockSize - 1) / blockSize
