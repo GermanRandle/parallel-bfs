@@ -146,19 +146,16 @@ suspend fun bfsParallel(gr: Graph, blockSize: Int): List<Int> {
             scope.launch {
                 val chunkBegin = chunk * copyChunkSize
                 val chunkEnd = minOf(nextSize, chunkBegin + copyChunkSize)
-                (chunkBegin..<chunkEnd).forEach { ni ->
-                    if (nextScan[ni] != nextScan[ni + 1]) {
-                        frontier[nextScan[ni]] = next[ni]
-                        result[next[ni]] = layer
+                (chunkBegin..<chunkEnd).forEach {
+                    if (nextScan[it] != nextScan[it + 1]) {
+                        frontier[nextScan[it]] = next[it]
+                        result[next[it]] = layer
+                        next[it] = -1
                     }
                 }
             }
         }
         copyJobs.forEach { it.join() }
-
-        for (i in 0..<nextSize) {
-            next[i] = -1
-        }
 
         for (i in nextFrontierSize..<frontierSize) {
             frontier[i] = -1
