@@ -33,10 +33,19 @@ class CubicGraph(val side: Int) : Graph {
         }
     }
 
-    fun checkBfsResult(bfsResult: List<Int>): Boolean {
-        check(bfsResult.size == side * side * side) { "wrong number of nodes in the bfs result..." }
+    fun checkSeqBfsResult(bfsResult: List<Int>): Boolean {
+        check(bfsResult.size == n) { "wrong number of nodes in the bfs result..." }
         for (u in 0..<bfsResult.size) {
             if (bfsResult[u] != u.toCoords().let { it.first + it.second + it.third }) {
+                return false
+            }
+        }
+        return true
+    }
+
+    fun checkParBfsResult(): Boolean {
+        for (u in 0..<n) {
+            if (parResult.get(u) != u.toCoords().let { it.first + it.second + it.third }) {
                 return false
             }
         }
@@ -67,5 +76,14 @@ class AdjListGraph(override val n: Int, edges: Set<Pair<Int, Int>>) : Graph {
 
     override fun getAdjacentNodes(u: Int): List<Int> {
         return adjList[u]
+    }
+
+    fun checkParBfsResult(expected: List<Int>): Boolean {
+        for (u in 0..<n) {
+            if (parResult.get(u) != expected[u]) {
+                return false
+            }
+        }
+        return true
     }
 }

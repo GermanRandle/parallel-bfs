@@ -14,7 +14,7 @@ class BfsTest {
     fun `cubic + seq`(n: Int) {
         val gr = CubicGraph(n)
         val bfsResult = bfsSequential(gr)
-        gr.checkBfsResult(bfsResult).shouldBeTrue()
+        gr.checkSeqBfsResult(bfsResult).shouldBeTrue()
     }
 
     @ParameterizedTest(name = "{0}")
@@ -29,18 +29,19 @@ class BfsTest {
     @ValueSource(ints = [1, 2, 3, 4, 9, 15, 16, 25])
     fun `cubic + par`(n: Int) {
         val gr = CubicGraph(n)
-        val bfsResult = runBlocking { bfsParallel(gr, 1) }
         cleanupForBfsParallel()
-        gr.checkBfsResult(bfsResult).shouldBeTrue()
+        runBlocking { bfsParallel(gr, 1) }
+
+        gr.checkParBfsResult().shouldBeTrue()
     }
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("adjListGraphTestcases")
     fun `adj list + par`(name: String, n: Int, edges: Set<Pair<Int, Int>>, expected: List<Int>) {
         val gr = AdjListGraph(n, edges)
-        val bfsResult = runBlocking { bfsParallel(gr, 1) }
         cleanupForBfsParallel()
-        bfsResult shouldBe expected
+        runBlocking { bfsParallel(gr, 1) }
+        gr.checkParBfsResult(expected).shouldBeTrue()
     }
 
     companion object {
@@ -88,9 +89,9 @@ class BfsTest {
             ),
             Arguments.of(
                 "bamboo",
-                10, // TODO * 1000
-                List(10 - 1) { it to it + 1 }.toSet(),
-                List(10) { it },
+                10_000,
+                List(10_000 - 1) { it to it + 1 }.toSet(),
+                List(10_000) { it },
             ),
         )
     }

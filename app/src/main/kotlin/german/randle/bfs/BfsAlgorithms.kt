@@ -29,9 +29,9 @@ fun bfsSequential(gr: Graph): List<Int> {
 @OptIn(ExperimentalCoroutinesApi::class)
 val scope = CoroutineScope(Dispatchers.Default.limitedParallelism(PROCESSES_COUNT))
 
-const val MAX_FRONTIER = CUBE_SIDE * CUBE_SIDE * 2
+const val MAX_FRONTIER = CUBE_SIDE * CUBE_SIDE
 const val MAX_DEGREE = 6
-val used = AtomicIntegerArray(CUBE_SIDE * CUBE_SIDE * CUBE_SIDE)
+val parResult = AtomicIntegerArray(CUBE_SIDE * CUBE_SIDE * CUBE_SIDE)
 val frontier = IntArray(MAX_FRONTIER) { -1 }
 val next = IntArray(MAX_FRONTIER * MAX_DEGREE) { -1 }
 val nextScanTree = IntArray(MAX_FRONTIER * MAX_DEGREE * 4)
@@ -40,8 +40,8 @@ val scanTree = IntArray(MAX_FRONTIER * 4)
 val scan = IntArray(MAX_FRONTIER)
 
 fun cleanupForBfsParallel() {
-    for (i in 0..<used.length()) {
-        used.set(i, 0)
+    for (i in 0..<parResult.length()) {
+        parResult.set(i, INF)
     }
     for (i in 0..<frontier.size) {
         frontier[i] = -1
@@ -54,12 +54,10 @@ fun cleanupForBfsParallel() {
 /**
  * WARNING: call [cleanupForBfsParallel] before
  */
-suspend fun bfsParallel(gr: Graph, blockSize: Int): List<Int> {
-    val result = MutableList(gr.n) { INF }
+suspend fun bfsParallel(gr: Graph, blockSize: Int) {
     frontier[0] = 0
     var frontierSize = 1
-    used.set(0, 1)
-    result[0] = 0
+    parResult.set(0, 0)
 
     suspend fun up(
         scanTree: IntArray,
@@ -123,7 +121,7 @@ suspend fun bfsParallel(gr: Graph, blockSize: Int): List<Int> {
                 (chunkBegin..<chunkEnd).forEach { frontierIndex ->
                     val u = frontier[frontierIndex]
                     for ((i, v) in gr.getAdjacentNodes(u).withIndex()) {
-                        if (used.compareAndSet(v, 0, 1)) {
+                        if (parResult.compareAndSet(v, INF, layer)) {
                             next[scan[frontierIndex] + i] = v
                         }
                     }
@@ -149,7 +147,7 @@ suspend fun bfsParallel(gr: Graph, blockSize: Int): List<Int> {
                 (chunkBegin..<chunkEnd).forEach {
                     if (nextScan[it] != nextScan[it + 1]) {
                         frontier[nextScan[it]] = next[it]
-                        result[next[it]] = layer
+                        parResult[next[it]] = layer
                         next[it] = -1
                     }
                 }
@@ -163,6 +161,4 @@ suspend fun bfsParallel(gr: Graph, blockSize: Int): List<Int> {
 
         frontierSize = nextFrontierSize
     }
-
-    return result
 }
