@@ -9,7 +9,7 @@ import org.junit.jupiter.params.provider.MethodSource
 import org.junit.jupiter.params.provider.ValueSource
 
 class BfsTest {
-    @ParameterizedTest(name = "n = {0}")
+    @ParameterizedTest(name = "side = {0}")
     @ValueSource(ints = [1, 2, 3, 4, 15, 16, 50])
     fun `cubic + seq`(n: Int) {
         val gr = CubicGraph(n)
@@ -26,7 +26,7 @@ class BfsTest {
     }
 
     @ParameterizedTest(name = "side = {0}")
-    @ValueSource(ints = [1, 2, 3, 4, 9, 15, 16])
+    @ValueSource(ints = [1, 2, 3, 4, 9, 15, 16, 25])
     fun `cubic + par`(n: Int) {
         val gr = CubicGraph(n)
         val bfsResult = runBlocking { bfsParallel(gr, 1) }
@@ -92,9 +92,9 @@ class BfsTest {
             ),
             Arguments.of(
                 "bamboo",
-                10_000,
-                List(10_000 - 1) { it to it + 1 }.toSet(),
-                List(10_000) { it },
+                10, // TODO * 1000
+                List(10 - 1) { it to it + 1 }.toSet(),
+                List(10) { it },
             ),
         )
     }

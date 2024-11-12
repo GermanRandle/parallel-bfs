@@ -3,6 +3,7 @@ package german.randle.bfs
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import java.util.concurrent.atomic.AtomicIntegerArray
 
@@ -28,11 +29,22 @@ fun bfsSequential(gr: Graph): List<Int> {
 @OptIn(ExperimentalCoroutinesApi::class)
 val scope = CoroutineScope(Dispatchers.Default.limitedParallelism(PROCESSES_COUNT))
 
+const val MAX_FRONTIER = CUBE_SIDE * CUBE_SIDE * 2
 val used = AtomicIntegerArray(CUBE_SIDE * CUBE_SIDE * CUBE_SIDE)
+var frontier = IntArray(MAX_FRONTIER) { -1 }
+var frontierSize = 1
+val next = IntArray(MAX_FRONTIER * 6) { -1 }
+val nextScanTree = IntArray(MAX_FRONTIER * 24)
+val nextScan = IntArray(MAX_FRONTIER * 6)
+val scanTree = IntArray(MAX_FRONTIER * 4)
+val scan = IntArray(MAX_FRONTIER)
 
+/**
+ * WARNING: clear [used] before running
+ */
 suspend fun bfsParallel(gr: Graph, blockSize: Int): List<Int> {
     val result = MutableList(gr.n) { INF }
-    var frontier = intArrayOf(0)
+    frontier[0] = 0
     used.set(0, 1)
     result[0] = 0
 
@@ -52,7 +64,7 @@ suspend fun bfsParallel(gr: Graph, blockSize: Int): List<Int> {
         val leftChild = scope.launch { up(scanTree, nodeId * 2 + 1, l, m, indexToValue) }
         val rightChild = scope.launch { up(scanTree, nodeId * 2 + 2, m, r, indexToValue) }
         leftChild.join()
-        scanTree[nodeId] += scanTree[nodeId * 2 + 1]
+        scanTree[nodeId] = scanTree[nodeId * 2 + 1]
         rightChild.join()
         scanTree[nodeId] += scanTree[nodeId * 2 + 2]
     }
@@ -65,44 +77,36 @@ suspend fun bfsParallel(gr: Graph, blockSize: Int): List<Int> {
         r: Int,
         acc: Int,
         indexToValue: (Int) -> Int,
-    ) {
+    ): Int {
         if (r - l <= blockSize) {
             var localAcc = 0
             (l..<r).forEach {
                 localAcc += indexToValue(it)
                 scan[it + 1] = acc + localAcc
             }
-            return
+            return localAcc
         }
 
         val m = (l + r) / 2
-        val leftChild = scope.launch { down(scan, scanTree, nodeId * 2 + 1, l, m, acc, indexToValue) }
-        val rightChild = scope.launch { down(scan, scanTree, nodeId * 2 + 2, m, r, acc + scanTree[nodeId * 2 + 1], indexToValue) }
-        leftChild.join()
-        rightChild.join()
+        val leftChild = scope.async { down(scan, scanTree, nodeId * 2 + 1, l, m, acc, indexToValue) }
+        val rightChild = scope.async { down(scan, scanTree, nodeId * 2 + 2, m, r, acc + scanTree[nodeId * 2 + 1], indexToValue) }
+        return leftChild.await() + rightChild.await()
     }
     
     val adjNodesFunction = { u: Int -> gr.getAdjacentNodesCount(frontier[u]) }
 
     var layer = 0
-    while (frontier.isNotEmpty()) {
+    while (frontierSize > 0) {
         layer++
-        val scanTree = IntArray(frontier.size * 4)
-        val scan = IntArray(frontier.size + 1)
-        up(scanTree, 0, 0, frontier.size, adjNodesFunction)
-        down(scan, scanTree, 0, 0, frontier.size, 0, adjNodesFunction)
-        val neighbors = scan.last()
-        if (neighbors == 0) {
-            break
-        }
-        val next = IntArray(scan.last()) { -1 }
+        up(scanTree, 0, 0, frontierSize, adjNodesFunction)
+        val nextSize = down(scan, scanTree, 0, 0, frontierSize, 0, adjNodesFunction)
 
-        val chunksAmount = (frontier.size + blockSize - 1) / blockSize
-        val chunkSize = (frontier.size + chunksAmount - 1) / chunksAmount
+        val chunksAmount = (frontierSize + blockSize - 1) / blockSize
+        val chunkSize = (frontierSize + chunksAmount - 1) / chunksAmount
         val goJobs = (0..<chunksAmount).map { chunk ->
             scope.launch {
                 val chunkBegin = chunk * chunkSize
-                val chunkEnd = minOf(frontier.size, chunkBegin + chunkSize)
+                val chunkEnd = minOf(frontierSize, chunkBegin + chunkSize)
                 (chunkBegin..<chunkEnd).forEach { fi ->
                     val u = frontier[fi]
                     for ((i, v) in gr.getAdjacentNodes(u).withIndex()) {
@@ -115,23 +119,23 @@ suspend fun bfsParallel(gr: Graph, blockSize: Int): List<Int> {
         }
         goJobs.forEach { it.join() }
 
-        val nextScanTree = IntArray(next.size * 4)
-        val nextScan = IntArray(next.size + 1)
         val isNodePresentFunction = { i: Int -> if (next[i] != -1) 1 else 0 }
-        up(nextScanTree, 0, 0, next.size, isNodePresentFunction)
-        down(nextScan, nextScanTree, 0, 0, next.size, 0, isNodePresentFunction)
+        up(nextScanTree, 0, 0, nextSize, isNodePresentFunction)
+        val nextFrontierSize = down(nextScan, nextScanTree, 0, 0, nextSize, 0, isNodePresentFunction)
+        if (nextFrontierSize == 0) {
+            break
+        }
 
-        val nextFrontier = IntArray(nextScan.last())
-        val copyChunksAmount = (next.size + blockSize - 1) / blockSize
-        val copyChunkSize = (next.size + copyChunksAmount - 1) / copyChunksAmount
+        val copyChunksAmount = (nextSize + blockSize - 1) / blockSize
+        val copyChunkSize = (nextSize + copyChunksAmount - 1) / copyChunksAmount
         
         val copyJobs = (0..<copyChunksAmount).map { chunk ->
             scope.launch {
                 val chunkBegin = chunk * copyChunkSize
-                val chunkEnd = minOf(next.size, chunkBegin + copyChunkSize)
+                val chunkEnd = minOf(nextSize, chunkBegin + copyChunkSize)
                 (chunkBegin..<chunkEnd).forEach { ni ->
                     if (nextScan[ni] != nextScan[ni + 1]) {
-                        nextFrontier[nextScan[ni]] = next[ni]
+                        frontier[nextScan[ni]] = next[ni]
                         result[next[ni]] = layer
                     }
                 }
@@ -139,7 +143,15 @@ suspend fun bfsParallel(gr: Graph, blockSize: Int): List<Int> {
         }
         copyJobs.forEach { it.join() }
 
-        frontier = nextFrontier
+        for (i in 0..<nextSize) {
+            next[i] = -1
+        }
+
+        for (i in nextFrontierSize..<frontierSize) {
+            frontier[i] = -1
+        }
+
+        frontierSize = nextFrontierSize
     }
 
     return result

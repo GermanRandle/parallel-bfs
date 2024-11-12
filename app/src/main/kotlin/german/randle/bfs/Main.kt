@@ -3,7 +3,7 @@ package german.randle.bfs
 import kotlinx.coroutines.runBlocking
 import kotlin.system.measureTimeMillis
 
-const val CUBE_SIDE = 450 // TODO
+const val CUBE_SIDE = 400 // TODO
 const val LAUNCHES_COUNT = 5
 const val PROCESSES_COUNT = 4
 const val INF = 1_000_000_000
@@ -14,7 +14,7 @@ val testGraph = CubicGraph(CUBE_SIDE)
  * If the size of array is less than or equal to this number, then we "switch to sequential mode".
  * Should be set up manually, also it depends on [PROCESSES_COUNT].
  */
-private const val BLOCK_SIZE = 40000 // TODO
+private const val BLOCK_SIZE = 20000 // TODO
 
 fun main() = runBlocking {
     val seqToParTimes = List(LAUNCHES_COUNT) {
